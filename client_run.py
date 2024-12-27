@@ -1,11 +1,12 @@
 from ftplib import FTP
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 
-class UserPanelApp:
+
+class InitClient:
     def __init__(self, root):
         self.root = root
-        self.root.title("User Panel")
+        self.root.title("User Login Panel")
         self.root.geometry("300x200")
 
         tk.Label(self.root, text="Username:").pack(pady=5)
@@ -19,6 +20,7 @@ class UserPanelApp:
         tk.Button(self.root, text="Login", command=self.login).pack(pady=10)
         tk.Button(self.root, text="Clear", command=self.clear_fields).pack(pady=5)
 
+
     def login(self):
         ftp_user = self.username_entry.get()
         ftp_pass = self.password_entry.get()
@@ -31,37 +33,60 @@ class UserPanelApp:
                 print(f"Connected to FTP server at {FTP_HOST}:{FTP_PORT} as {ftp_user}")
 
                 messagebox.showinfo("Login Success", f"Welcome, {ftp_user}!")
+                for widget in self.root.winfo_children():
+                    widget.destroy()
+                UserPanelApp(self.root, ftp)
 
-                # Redirecting to the main panel after login
-                self.redirect_panel(ftp)
             except Exception as e:
                 messagebox.showerror("Login Failed", f"Failed to connect: {e}")
         else:
             messagebox.showwarning("Input Error", "Please enter both username and password.")
 
-    def redirect_panel(self, ftp):
-        self.root.withdraw()  # Hide the login window
-        redirect_window = tk.Toplevel()
-        redirect_window.title("Main Panel")
-        redirect_window.geometry("400x300")
-
-        tk.Label(redirect_window, text="File List", font=("Arial", 14)).pack(pady=10)
-
-        file_listbox = tk.Listbox(redirect_window, width=50, height=15)
-        file_listbox.pack(pady=10)
-
-        try:
-            files = ftp.nlst()  # Retrieve the list of files in the current directory
-            for file in files:
-                file_listbox.insert(tk.END, file)
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to retrieve file list: {e}")
-
-        tk.Button(redirect_window, text="Close", command=lambda: [ftp.quit(), redirect_window.destroy(), self.root.destroy()]).pack(pady=10)
-
     def clear_fields(self):
         self.username_entry.delete(0, tk.END)
         self.password_entry.delete(0, tk.END)
+
+class UserPanelApp:
+    def __init__(self, root, ftp):
+        self.root = root
+        self.ftp = ftp
+        self.root.title("Main Panel")
+        self.root.geometry("400x300")
+
+        tk.Label(self.root, text="File List", font=("Arial", 14)).pack(pady=10)
+
+        self.file_listbox = tk.Listbox(self.root, width=50, height=15)
+        self.file_listbox.pack(pady=10)
+
+        self.refresh_file_list()
+
+        tk.Button(self.root, text="Upload File", command=self.upload_file).pack(pady=5)
+        tk.Button(self.root, text="Close", command=self.close_app).pack(pady=10)
+
+    def refresh_file_list(self):
+        self.file_listbox.delete(0, tk.END)
+        try:
+            files = self.ftp.nlst()  # Retrieve the list of files in the current directory
+            for file in files:
+                self.file_listbox.insert(tk.END, file)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to retrieve file list: {e}")
+
+    def upload_file(self):
+        file_path = filedialog.askopenfilename()
+        if file_path:
+            try:
+                with open(file_path, 'rb') as file:
+                    file_name = file_path.split('/')[-1]
+                    self.ftp.storbinary(f"STOR {file_name}", file)
+                    messagebox.showinfo("Upload Success", f"File '{file_name}' uploaded successfully!")
+                    self.refresh_file_list()
+            except Exception as e:
+                messagebox.showerror("Upload Failed", f"Failed to upload file: {e}")
+
+    def close_app(self):
+        self.ftp.quit()
+        self.root.destroy()
 
 if __name__ == "__main__":
     # FTP connection details
@@ -69,5 +94,5 @@ if __name__ == "__main__":
     FTP_PORT = 2121  # Port number
 
     root = tk.Tk()
-    app = UserPanelApp(root)
+    app = InitClient(root)
     root.mainloop()
