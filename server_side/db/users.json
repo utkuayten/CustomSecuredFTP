@@ -1,14 +1,7 @@
 {
     "user1": {
         "password": "password123",
-        "home_dir": "C:/Users/Utku Ayten/Desktop/CS447/server_side/root/user1"
-    },
-    "utku": {
-        "password": "$2b$12$/nawSdfgEakIQUTnel9RSurnBDqEhY.r7zkOgvwHErskkYIML.a0i",
-        "home_dir": "C:\\Users\\Utku Ayten\\Desktop\\CS447\\server_side\\root/utku"
-    },
-    "test": {
-        "password": "$2b$12$/xYvIFRpi2XZfnMTWLDMQuRviy3Yv/CiHcXYk6ilPrrfN8yFiKFKe",
-        "home_dir": "C:\\Users\\Utku Ayten\\Desktop\\CS447\\server_side\\root/test"
+        "home_dir": "/home/ec2-user/project/server_side/root/user1"
+    
     }
 }

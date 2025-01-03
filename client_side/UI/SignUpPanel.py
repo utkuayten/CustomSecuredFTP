@@ -4,7 +4,7 @@ import bcrypt
 import json
 import os
 
-from client_side.UI.Hasher import Hasher
+from CustomSecuredFTP.client_side.UI.Hasher import Hasher
 
 USER_DB = os.path.join(os.path.dirname(__file__), "users.json")
 

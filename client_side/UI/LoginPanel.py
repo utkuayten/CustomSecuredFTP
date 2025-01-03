@@ -2,9 +2,9 @@ import hashlib
 import tkinter as tk
 from tkinter import messagebox
 
-from client_side.UI.Hasher import Hasher
-from client_side.UI.SignUpPanel import SignUpPanel
-from client_side.UI.UserPanel import UserPanelApp
+from CustomSecuredFTP.client_side.UI.Hasher import Hasher
+from CustomSecuredFTP.client_side.UI.SignUpPanel import SignUpPanel
+from CustomSecuredFTP.client_side.UI.UserPanel import UserPanelApp
 
 
 class LoginPanel:
