@@ -1,8 +1,7 @@
 from ftplib import FTP
 import tkinter as tk
-from tkinter import messagebox, filedialog
 
-from LoginPanel import LoginPanel
+from client_side.UI.LoginPanel import LoginPanel
 
 if __name__ == "__main__":
     # FTP connection details

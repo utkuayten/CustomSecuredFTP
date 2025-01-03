@@ -1,9 +1,8 @@
 import hashlib
-from ftplib import FTP
 import tkinter as tk
 from tkinter import messagebox
 
-from client_side.UserPanel import UserPanelApp
+from client_side.UI.UserPanel import UserPanelApp
 
 
 class LoginPanel:
