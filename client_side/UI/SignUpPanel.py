@@ -4,7 +4,10 @@ import bcrypt
 import json
 import os
 
+from client_side.UI.Hasher import Hasher
+
 USER_DB = os.path.join(os.path.dirname(__file__), "users.json")
+
 
 
 class SignUpPanel:
@@ -29,45 +32,34 @@ class SignUpPanel:
 
         tk.Button(self.sign_up_window, text="Sign Up", command=self.sign_up).pack(pady=10)
 
-    def load_users(self):
-        try:
-            with open(USER_DB, "r") as f:
-                return json.load(f)
-        except FileNotFoundError:
-            return {}
-
-    def save_users(self, users):
-        with open(USER_DB, "w") as f:
-            json.dump(users, f)
 
     def sign_up(self):
+
         username = self.username_entry.get()
         password = self.password_entry.get()
         confirm_password = self.confirm_password_entry.get()
 
         if not username or not password:
-            messagebox.showwarning("Input Error", "All fields are required.")
+            messagebox.showwarning("Input Error", "Username and password are required!")
             return
+
 
         if password != confirm_password:
             messagebox.showerror("Password Mismatch", "Passwords do not match.")
             return
 
-        users = self.load_users()
+        salt = Hasher.generate_salt(username)
+        hashed_password = Hasher.hash_password(password, salt)
 
-        if username in users:
-            messagebox.showerror("Error", "Username already exists.")
+        if not username or not password:
+            messagebox.showwarning("Input Error", "All fields are required.")
             return
 
+        try:
+            self.ftp.sendcmd(f"REGISTER {username} {hashed_password}")
+            messagebox.showinfo("Sign Up", "Sign up successful!")
+            self.sign_up_window.destroy()
+        except Exception as e:
+            messagebox.showerror("Sign Up Failed", f"Error: {e}")
 
-        # Salt and Hash.
 
-        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        users[username] = {
-            "password": hashed_password,
-            "home_dir": f"C:/Users/Utku Ayten/Desktop/ftp_root/{username}"
-        }
-
-        self.save_users(users)
-        messagebox.showinfo("Success", "User signed up successfully!")
-        self.sign_up_window.destroy()

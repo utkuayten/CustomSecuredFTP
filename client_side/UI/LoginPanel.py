@@ -2,6 +2,8 @@ import hashlib
 import tkinter as tk
 from tkinter import messagebox
 
+from client_side.UI.Hasher import Hasher
+from client_side.UI.SignUpPanel import SignUpPanel
 from client_side.UI.UserPanel import UserPanelApp
 
 
@@ -23,27 +25,10 @@ class LoginPanel:
         tk.Button(self.root, text="Sign Up", command=self.sign_up).pack(pady=10)
         tk.Button(self.root, text="Login", command=self.login).pack(pady=5)
 
-    def hash_password(self, password):
-        """Hash the password using SHA256."""
-        hashed = hashlib.sha256(password.encode("utf-8")).hexdigest()
-        return hashed
 
     def sign_up(self):
-        username = self.username_entry.get()
-        password = self.password_entry.get()
+        SignUpPanel(self.root, self.ftp)
 
-        if not username or not password:
-            messagebox.showwarning("Input Error", "Username and password are required!")
-            return
-
-        hashed_password = self.hash_password(password)
-        print(f"Hashed Password (Sign Up): {hashed_password}")
-
-        try:
-            self.ftp.sendcmd(f"REGISTER {username} {hashed_password}")
-            messagebox.showinfo("Sign Up", "Sign up successful!")
-        except Exception as e:
-            messagebox.showerror("Sign Up Failed", f"Error: {e}")
 
     def login(self):
         username = self.username_entry.get()
@@ -53,7 +38,8 @@ class LoginPanel:
             messagebox.showwarning("Input Error", "Username and password are required!")
             return
 
-        hashed_password = self.hash_password(password)
+        salt = Hasher.generate_salt(username)
+        hashed_password = Hasher.hash_password(password, salt)
         print(f"Hashed Password (Login): {hashed_password}")
 
         try:
