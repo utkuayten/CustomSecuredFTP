@@ -111,14 +111,6 @@ class SignUpPanel(BoxLayout):
         sign_up_button.bind(on_press=self.sign_up)
         self.add_widget(sign_up_button)
 
-        # Back button
-        back_button = ModernButton(
-            text="Back to Login",
-            background_color=(0.9, 0.9, 0.9, 1),  # Light gray
-            color=(0.3, 0.3, 0.3, 1)  # Dark text
-        )
-        back_button.bind(on_press=self.go_back)
-        self.add_widget(back_button)
 
         # Add remaining space at the bottom
         self.add_widget(BoxLayout())
@@ -127,10 +119,7 @@ class SignUpPanel(BoxLayout):
         self.rect.pos = instance.pos
         self.rect.size = instance.size
 
-    def go_back(self, instance):
-        # Remove all widgets and go back to login
-        self.clear_widgets()
-        self.parent.remove_widget(self)
+
 
     def sign_up(self, instance):
         username = self.username_entry.text

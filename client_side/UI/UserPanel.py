@@ -1,3 +1,5 @@
+import os
+
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
@@ -231,6 +233,12 @@ class UserPanelApp(BoxLayout):
         cancel_button.bind(on_press=popup.dismiss)
         popup.open()
 
+    import os
+    from kivy.uix.filechooser import FileChooserListView
+    from kivy.uix.boxlayout import BoxLayout
+    from kivy.uix.button import Button
+    from kivy.uix.popup import Popup
+
     def upload_file(self, instance):
         """Open a file chooser popup for selecting and uploading a file."""
         # Create a popup with a file chooser
@@ -251,12 +259,17 @@ class UserPanelApp(BoxLayout):
             selected_file = file_chooser.selection
             if selected_file:
                 try:
+                    # Get the selected file path
                     file_path = selected_file[0]
+                    file_name = os.path.basename(file_path)
+
+                    # Open the file in binary mode and upload
                     with open(file_path, 'rb') as file:
-                        file_name = file_path.split('/')[-1]
                         self.ftp.storbinary(f"STOR {file_name}", file)
-                        self.show_info(f"File '{file_name}' uploaded successfully!")
-                        self.refresh_file_list()
+
+                    # Notify the user and refresh the file list
+                    self.show_info(f"File '{file_name}' uploaded successfully!")
+                    self.refresh_file_list()
                 except Exception as e:
                     self.show_error(f"Failed to upload file: {e}")
                 finally:
@@ -264,6 +277,7 @@ class UserPanelApp(BoxLayout):
             else:
                 self.show_warning("No file selected!")
 
+        # Bind the buttons to their respective functions
         upload_button.bind(on_press=on_upload)
         cancel_button.bind(on_press=popup.dismiss)
         popup.open()

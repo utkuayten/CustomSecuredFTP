@@ -1,6 +1,7 @@
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
+from kivy.uix.modalview import ModalView
 from kivy.uix.popup import Popup
 from kivy.core.window import Window
 from kivy.graphics import Color, Rectangle
@@ -109,7 +110,23 @@ class LoginPanel(BoxLayout):
         self.rect.size = instance.size
 
     def sign_up(self, instance):
-        SignUpPanel(self, self.ftp)
+        """Open the SignUpPanel in a modal view."""
+        # Create a modal view
+        sign_up_modal = ModalView(size_hint=(0.8, 0.8))
+
+        # Create the sign-up panel and pass the FTP instance
+        sign_up_panel = SignUpPanel(ftp=self.ftp)
+
+        # Add a close button to the SignUpPanel
+        close_button = ModernButton(text="Close", size_hint=(1, 0.1))
+        close_button.bind(on_press=sign_up_modal.dismiss)  # Close the modal on button press
+        sign_up_panel.add_widget(close_button)
+
+        # Add the sign-up panel to the modal view
+        sign_up_modal.add_widget(sign_up_panel)
+
+        # Open the modal view
+        sign_up_modal.open()
 
     def login(self, instance):
         username = self.username_entry.text
