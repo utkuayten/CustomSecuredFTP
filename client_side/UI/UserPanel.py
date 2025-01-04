@@ -9,6 +9,7 @@ from kivy.graphics import Color, Rectangle
 from kivy.metrics import dp
 from kivy.uix.filechooser import FileChooserListView
 from UI.ModernControls import ModernButton
+from kivy.uix.textinput import TextInput
 
 class ModernCheckBox(CheckBox):
     def __init__(self, **kwargs):
@@ -186,10 +187,10 @@ class UserPanelApp(BoxLayout):
             self.show_warning("No files selected for download!")
             return
 
-        # Create a popup for entering the save path
+        # Create a popup for selecting the save directory
         content = BoxLayout(orientation="vertical")
-        file_name_input = TextInput(hint_text="Enter file save path (e.g., /path/to/file.txt)")
-        content.add_widget(file_name_input)
+        file_chooser = FileChooserListView(path="/", filters=["*"], dirselect=True)  # Enable directory selection
+        content.add_widget(file_chooser)
 
         buttons = BoxLayout(size_hint_y=None, height=50)
         download_button = Button(text="Download", size_hint_x=0.5)
@@ -198,28 +199,27 @@ class UserPanelApp(BoxLayout):
         buttons.add_widget(cancel_button)
         content.add_widget(buttons)
 
-        popup = Popup(title="Save File As", content=content, size_hint=(0.8, 0.4))
+        popup = Popup(title="Select Save Directory", content=content, size_hint=(0.9, 0.9))
 
         def on_download(instance):
-            save_path = file_name_input.text.strip()
-            if save_path:
+            selected_dir = file_chooser.path  # Get the selected directory
+            if selected_dir:
                 try:
                     for file_name in self.selected_files:
+                        save_path = f"{selected_dir}/{file_name}"
                         with open(save_path, 'wb') as file:
                             self.ftp.retrbinary(f"RETR {file_name}", file.write)
-                        self.show_info(f"File '{file_name}' downloaded successfully!")
+                        self.show_info(f"File '{file_name}' downloaded to '{save_path}' successfully!")
                 except Exception as e:
                     self.show_error(f"Failed to download file: {e}")
                 finally:
                     popup.dismiss()
             else:
-                self.show_warning("Please enter a valid save path!")
+                self.show_warning("Please select a valid directory!")
 
         download_button.bind(on_press=on_download)
         cancel_button.bind(on_press=popup.dismiss)
         popup.open()
-
-
 
     def upload_file(self, instance):
         """Open a file chooser popup for selecting and uploading a file."""
@@ -272,8 +272,3 @@ class UserPanelApp(BoxLayout):
     def show_warning(self, message):
         popup = Popup(title="Warning", content=Label(text=message), size_hint=(0.8, 0.8))
         popup.open()
-
-
-
-
-
