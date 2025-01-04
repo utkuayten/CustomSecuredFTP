@@ -1,7 +1,8 @@
 import hashlib
 import os
+# import socket
+# import sslp
 
-import bcrypt
 
 
 class Hasher:
