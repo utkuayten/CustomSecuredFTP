@@ -1,3 +1,4 @@
 kivy==2.3.1
 pyftpdlib==2.0.1
 bcrypt==4.0.0
+pyinstaller==6.11.1
