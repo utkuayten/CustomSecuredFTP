@@ -9,6 +9,8 @@ if platform.system() == "Darwin":  # macOS
     datas = [('UI', 'client_side/UI')]
 elif platform.system() == "Windows":  # Windows
     datas = [('UI', 'client_side\\UI')]
+elif platform.system() == "Linux":  # Linux
+    datas = [('UI', 'client_side/UI')]  # Linux uses forward slashes for paths
 
 # Common Analysis step
 a = Analysis(
@@ -43,8 +45,7 @@ exe = EXE(
     console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
-    target_arch="universal2",  # Add this for universal binary
-    #target_arch=None,  # Use universal2 for macOS if needed
-    codesign_identity=None,  # Add macOS signing if required
+    target_arch=None,  # No universal binary for Linux
+    codesign_identity=None,  # Signing is not required for Linux
     entitlements_file=None,
 )
