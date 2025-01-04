@@ -1,5 +1,10 @@
-import tkinter as tk
-from tkinter import messagebox
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.label import Label
+from kivy.uix.textinput import TextInput
+from kivy.uix.button import Button
+from kivy.uix.popup import Popup
+from kivy.app import App
+
 import bcrypt
 import json
 import os
@@ -9,57 +14,71 @@ from client_side.UI.Hasher import Hasher
 USER_DB = os.path.join(os.path.dirname(__file__), "users.json")
 
 
-
-class SignUpPanel:
-    def __init__(self, root, ftp):
-        self.root = root
+class SignUpPanel(BoxLayout):
+    def __init__(self, ftp, **kwargs):
+        super().__init__(orientation="vertical", spacing=10, padding=20, **kwargs)
         self.ftp = ftp
-        self.sign_up_window = tk.Toplevel(self.root)
-        self.sign_up_window.title("Sign Up")
-        self.sign_up_window.geometry("300x250")
 
-        tk.Label(self.sign_up_window, text="Username:").pack(pady=5)
-        self.username_entry = tk.Entry(self.sign_up_window)
-        self.username_entry.pack(pady=5)
+        # Username field
+        self.add_widget(Label(text="Username:"))
+        self.username_entry = TextInput(multiline=False)
+        self.add_widget(self.username_entry)
 
-        tk.Label(self.sign_up_window, text="Password:").pack(pady=5)
-        self.password_entry = tk.Entry(self.sign_up_window, show="*")
-        self.password_entry.pack(pady=5)
+        # Password field
+        self.add_widget(Label(text="Password:"))
+        self.password_entry = TextInput(password=True, multiline=False)
+        self.add_widget(self.password_entry)
 
-        tk.Label(self.sign_up_window, text="Confirm Password:").pack(pady=5)
-        self.confirm_password_entry = tk.Entry(self.sign_up_window, show="*")
-        self.confirm_password_entry.pack(pady=5)
+        # Confirm password field
+        self.add_widget(Label(text="Confirm Password:"))
+        self.confirm_password_entry = TextInput(password=True, multiline=False)
+        self.add_widget(self.confirm_password_entry)
 
-        tk.Button(self.sign_up_window, text="Sign Up", command=self.sign_up).pack(pady=10)
+        # Sign up button
+        sign_up_button = Button(text="Sign Up")
+        sign_up_button.bind(on_press=self.sign_up)
+        self.add_widget(sign_up_button)
 
-
-    def sign_up(self):
-
-        username = self.username_entry.get()
-        password = self.password_entry.get()
-        confirm_password = self.confirm_password_entry.get()
+    def sign_up(self, instance):
+        username = self.username_entry.text
+        password = self.password_entry.text
+        confirm_password = self.confirm_password_entry.text
 
         if not username or not password:
-            messagebox.showwarning("Input Error", "Username and password are required!")
+            self.show_popup("Input Error", "Username and password are required!")
             return
 
-
         if password != confirm_password:
-            messagebox.showerror("Password Mismatch", "Passwords do not match.")
+            self.show_popup("Password Mismatch", "Passwords do not match.")
             return
 
         salt = Hasher.generate_salt(username)
         hashed_password = Hasher.hash_password(password, salt)
 
-        if not username or not password:
-            messagebox.showwarning("Input Error", "All fields are required.")
-            return
-
         try:
             self.ftp.sendcmd(f"REGISTER {username} {hashed_password}")
-            messagebox.showinfo("Sign Up", "Sign up successful!")
-            self.sign_up_window.destroy()
+            self.show_popup("Sign Up", "Sign up successful!")
         except Exception as e:
-            messagebox.showerror("Sign Up Failed", f"Error: {e}")
+            self.show_popup("Sign Up Failed", f"Error: {e}")
+
+    def show_popup(self, title, message):
+        popup = Popup(title=title, content=Label(text=message), size_hint=(0.8, 0.5))
+        popup.open()
 
 
+class SignUpApp(App):
+    def __init__(self, ftp, **kwargs):
+        super().__init__(**kwargs)
+        self.ftp = ftp
+
+    def build(self):
+        return SignUpPanel(ftp=self.ftp)
+
+
+# Replace this section with your FTP initialization logic
+if __name__ == "__main__":
+    from ftplib import FTP
+
+    ftp = FTP()
+    ftp.connect("16.170.206.200", 2121)  # Replace with your FTP server details
+    SignUpApp(ftp).run()

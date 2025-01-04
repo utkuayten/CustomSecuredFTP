@@ -1,104 +1,140 @@
 from ftplib import FTP
-import tkinter as tk
-from tkinter import messagebox, filedialog
+from kivy.app import App
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.label import Label
+from kivy.uix.textinput import TextInput
+from kivy.uix.button import Button
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.checkbox import CheckBox
+from kivy.uix.popup import Popup
 
 
-class UserPanelApp:
-    def __init__(self, root, ftp):
-        self.root = root
+class UserPanelApp(BoxLayout):
+    def __init__(self, ftp, **kwargs):
+        super().__init__(orientation="horizontal", spacing=10, padding=10, **kwargs)
         self.ftp = ftp
-        self.root.title("Main Panel")
-        self.root.geometry("1000x500")
-        self.root.resizable(False, False)
+        self.selected_files = []
+        self.selected_directories = []
 
-        # Frame for splitting the window
-        main_frame = tk.Frame(self.root)
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        # Left layout for file list
+        left_layout = BoxLayout(orientation="vertical", size_hint=(0.5, 1))
+        left_layout.add_widget(Label(text="File List", font_size=20))
 
-        # Left frame for file list
-        left_frame = tk.Frame(main_frame, width=500, bg="lightgrey")
-        left_frame.pack(side=tk.LEFT, fill=tk.Y)
+        # Scrollable container for the file list
+        self.file_list_container = ScrollView(size_hint=(1, 1))
+        self.file_list_layout = BoxLayout(orientation="vertical", size_hint_y=None)
+        self.file_list_layout.bind(minimum_height=self.file_list_layout.setter("height"))
+        self.file_list_container.add_widget(self.file_list_layout)
+        left_layout.add_widget(self.file_list_container)
 
-        tk.Label(left_frame, text="File List", font=("Arial", 14)).pack(pady=10)
+        upload_btn = Button(text="Upload File", size_hint_y=None, height=50)
+        upload_btn.bind(on_press=self.upload_file)
+        left_layout.add_widget(upload_btn)
 
-        self.file_listbox = tk.Listbox(left_frame, width=50, height=20)
-        self.file_listbox.pack(pady=10)
+        download_btn = Button(text="Download Selected Files", size_hint_y=None, height=50)
+        download_btn.bind(on_press=self.download_selected_files)
+        left_layout.add_widget(download_btn)
+
+        self.add_widget(left_layout)
+
+        # Right layout for directory navigation
+        right_layout = BoxLayout(orientation="vertical", size_hint=(0.5, 1))
+        right_layout.add_widget(Label(text="Directory Navigator", font_size=20))
+
+        self.current_dir_label = Label(text="Current Directory: ")
+        right_layout.add_widget(self.current_dir_label)
+
+        # Scrollable container for the directory list
+        self.directory_list_container = ScrollView(size_hint=(1, 1))
+        self.directory_list_layout = BoxLayout(orientation="vertical", size_hint_y=None)
+        self.directory_list_layout.bind(minimum_height=self.directory_list_layout.setter("height"))
+        self.directory_list_container.add_widget(self.directory_list_layout)
+        right_layout.add_widget(self.directory_list_container)
+
+        change_dir_btn = Button(text="Change Directory", size_hint_y=None, height=50)
+        change_dir_btn.bind(on_press=self.change_directory)
+        right_layout.add_widget(change_dir_btn)
+
+        self.add_widget(right_layout)
 
         self.refresh_file_list()
-
-        tk.Button(left_frame, text="Upload File", command=self.upload_file).pack(pady=5)
-        tk.Button(left_frame, text="Download File", command=self.download_file).pack(pady=5)
-
-        # Right frame for directory navigation
-        right_frame = tk.Frame(main_frame, width=500)
-        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
-
-        tk.Label(right_frame, text="Directory Navigator", font=("Arial", 14)).pack(pady=10)
-
-        self.current_dir_label = tk.Label(right_frame, text="Current Directory: ", wraplength=400)
-        self.current_dir_label.pack(pady=5)
-
-        self.directory_listbox = tk.Listbox(right_frame, width=50, height=20)
-        self.directory_listbox.pack(pady=10)
-
-        tk.Button(right_frame, text="Change Directory", command=self.change_directory).pack(pady=5)
         self.refresh_directory_view()
 
     def refresh_file_list(self):
-        self.file_listbox.delete(0, tk.END)
+        """Populate the file list with checkboxes."""
+        self.file_list_layout.clear_widgets()  # Clear the current list
+        self.selected_files = []  # Reset selected files
         try:
-            files = self.ftp.nlst()  # Retrieve the list of files in the current directory
+            files = self.ftp.nlst()  # Retrieve the list of files
             for file in files:
-                self.file_listbox.insert(tk.END, file)
+                row = BoxLayout(orientation="horizontal", size_hint_y=None, height=40)
+                checkbox = CheckBox(size_hint_x=None, width=50)
+                checkbox.bind(active=lambda checkbox, active, file=file: self.select_file(file, active))
+                row.add_widget(checkbox)
+                row.add_widget(Label(text=file, size_hint_x=1))
+                self.file_list_layout.add_widget(row)
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to retrieve file list: {e}")
+            self.show_error(f"Failed to retrieve file list: {e}")
 
     def refresh_directory_view(self):
-        self.directory_listbox.delete(0, tk.END)
+        """Populate the directory list with checkboxes."""
+        self.directory_list_layout.clear_widgets()  # Clear the current list
+        self.selected_directories = []  # Reset selected directories
         try:
             current_dir = self.ftp.pwd()
-            self.current_dir_label.config(text=f"Current Directory: {current_dir}")
+            self.current_dir_label.text = f"Current Directory: {current_dir}"
 
-            dirs = self.ftp.nlst()  # Retrieve the list of items in the current directory
-            for item in dirs:
-                self.directory_listbox.insert(tk.END, item)
+            dirs = self.ftp.nlst()  # Retrieve the list of directories
+            for dir_name in dirs:
+                row = BoxLayout(orientation="horizontal", size_hint_y=None, height=40)
+                checkbox = CheckBox(size_hint_x=None, width=50)
+                checkbox.bind(active=lambda checkbox, active, dir_name=dir_name: self.select_directory(dir_name, active))
+                row.add_widget(checkbox)
+                row.add_widget(Label(text=dir_name, size_hint_x=1))
+                self.directory_list_layout.add_widget(row)
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to retrieve directory list: {e}")
+            self.show_error(f"Failed to retrieve directory list: {e}")
 
-    def upload_file(self):
-        file_path = filedialog.askopenfilename()
-        if file_path:
-            try:
-                with open(file_path, 'rb') as file:
-                    file_name = file_path.split('/')[-1]
-                    self.ftp.storbinary(f"STOR {file_name}", file)
-                    messagebox.showinfo("Upload Success", f"File '{file_name}' uploaded successfully!")
-                    self.refresh_file_list()
-            except Exception as e:
-                messagebox.showerror("Upload Failed", f"Failed to upload file: {e}")
-
-    def download_file(self):
-        selected_item = self.file_listbox.curselection()
-        if selected_item:
-            file_name = self.file_listbox.get(selected_item[0])
-            save_path = filedialog.asksaveasfilename(initialfile=file_name)
-            if save_path:
-                try:
-                    with open(save_path, 'wb') as file:
-                        self.ftp.retrbinary(f"RETR {file_name}", file.write)
-                        messagebox.showinfo("Download Success", f"File '{file_name}' downloaded successfully!")
-                except Exception as e:
-                    messagebox.showerror("Download Failed", f"Failed to download file: {e}")
+    def select_file(self, file, active):
+        """Handle file selection."""
+        if active:
+            self.selected_files.append(file)
         else:
-            messagebox.showwarning("Selection Error", "Please select a file to download.")
+            self.selected_files.remove(file)
 
-    def change_directory(self):
-        selected_item = self.directory_listbox.curselection()
-        if selected_item:
-            dir_name = self.directory_listbox.get(selected_item[0])
-            try:
-                self.ftp.cwd(dir_name)
-                self.refresh_file_list()
-                self.refresh_directory_view()
-            except Exception as e:
-                messagebox.showerror("Change Directory Failed", f"Failed to change directory: {e}")
+    def select_directory(self, directory, active):
+        """Handle directory selection."""
+        if active:
+            self.selected_directories.append(directory)
+        else:
+            self.selected_directories.remove(directory)
+
+    def download_selected_files(self, instance):
+        """Download the selected files."""
+        if not self.selected_files:
+            self.show_warning("No files selected for download!")
+            return
+        self.show_info(f"Downloading files: {', '.join(self.selected_files)}")
+
+    def upload_file(self, instance):
+        self.show_error("File upload not yet implemented.")
+
+    def change_directory(self, instance):
+        self.show_error("Directory change not yet implemented.")
+
+    def show_error(self, message):
+        popup = Popup(title="Error", content=Label(text=message), size_hint=(0.8, 0.8))
+        popup.open()
+
+    def show_info(self, message):
+        popup = Popup(title="Info", content=Label(text=message), size_hint=(0.8, 0.8))
+        popup.open()
+
+    def show_warning(self, message):
+        popup = Popup(title="Warning", content=Label(text=message), size_hint=(0.8, 0.8))
+        popup.open()
+
+
+
+
+

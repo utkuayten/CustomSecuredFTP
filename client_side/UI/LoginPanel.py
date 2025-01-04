@@ -1,41 +1,49 @@
-import hashlib
-import tkinter as tk
-from tkinter import messagebox
+from kivy.app import App
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.label import Label
+from kivy.uix.textinput import TextInput
+from kivy.uix.button import Button
+from kivy.uix.popup import Popup
 
 from client_side.UI.Hasher import Hasher
 from client_side.UI.SignUpPanel import SignUpPanel
 from client_side.UI.UserPanel import UserPanelApp
 
 
-class LoginPanel:
-    def __init__(self, root, ftp):
-        self.root = root
+class LoginPanel(BoxLayout):
+    def __init__(self, ftp, **kwargs):
+        super().__init__(orientation="vertical", spacing=10, padding=20, **kwargs)
         self.ftp = ftp
-        self.root.title("User Login Panel")
-        self.root.geometry("300x250")
 
-        tk.Label(self.root, text="Username:").pack(pady=5)
-        self.username_entry = tk.Entry(self.root)
-        self.username_entry.pack(pady=5)
+        # Username field
+        self.add_widget(Label(text="Username:"))
+        self.username_entry = TextInput(multiline=False)
+        self.add_widget(self.username_entry)
 
-        tk.Label(self.root, text="Password:").pack(pady=5)
-        self.password_entry = tk.Entry(self.root, show="*")
-        self.password_entry.pack(pady=5)
+        # Password field
+        self.add_widget(Label(text="Password:"))
+        self.password_entry = TextInput(password=True, multiline=False)
+        self.add_widget(self.password_entry)
 
-        tk.Button(self.root, text="Sign Up", command=self.sign_up).pack(pady=10)
-        tk.Button(self.root, text="Login", command=self.login).pack(pady=5)
+        # Sign up button
+        sign_up_button = Button(text="Sign Up")
+        sign_up_button.bind(on_press=self.sign_up)
+        self.add_widget(sign_up_button)
 
+        # Login button
+        login_button = Button(text="Login")
+        login_button.bind(on_press=self.login)
+        self.add_widget(login_button)
 
-    def sign_up(self):
-        SignUpPanel(self.root, self.ftp)
+    def sign_up(self, instance):
+        SignUpPanel(self, self.ftp)
 
-
-    def login(self):
-        username = self.username_entry.get()
-        password = self.password_entry.get()
+    def login(self, instance):
+        username = self.username_entry.text
+        password = self.password_entry.text
 
         if not username or not password:
-            messagebox.showwarning("Input Error", "Username and password are required!")
+            self.show_popup("Input Error", "Username and password are required!")
             return
 
         salt = Hasher.generate_salt(username)
@@ -44,9 +52,24 @@ class LoginPanel:
 
         try:
             self.ftp.login(username, hashed_password)
-            messagebox.showinfo("Login", "Login successful!")
-            for widget in self.root.winfo_children():
-                widget.destroy()
-            UserPanelApp(self.root, self.ftp)
+            self.show_popup("Login", "Login successful!")
+
+            # Replace the current LoginPanel with the UserPanelApp
+            self.clear_widgets()
+            user_panel = UserPanelApp(ftp=self.ftp)  # Pass the FTP instance correctly
+            self.add_widget(user_panel)
         except Exception as e:
-            messagebox.showerror("Login Failed", f"Error: {e}")
+            self.show_popup("Login Failed", f"Error: {e}")
+
+    def show_popup(self, title, message):
+        popup = Popup(title=title, content=Label(text=message), size_hint=(0.8, 0.5))
+        popup.open()
+
+
+class LoginApp(App):
+    def __init__(self, ftp, **kwargs):
+        super().__init__(**kwargs)
+        self.ftp = ftp
+
+    def build(self):
+        return LoginPanel(ftp=self.ftp)
