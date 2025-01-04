@@ -1,7 +1,7 @@
 from ftplib import FTP
 import tkinter as tk
 
-from CustomSecuredFTP.client_side.UI.LoginPanel import LoginPanel
+from UI.LoginPanel import LoginPanel
 
 if __name__ == "__main__":
     # FTP connection details
