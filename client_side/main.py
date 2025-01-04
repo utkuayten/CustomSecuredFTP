@@ -1,19 +1,22 @@
-from ftplib import FTP
 from kivy.app import App
-from UI.LoginPanel import LoginPanel
+from client_side.UI.LoginPanel import LoginPanel
+from ftplib import FTP
+from client_side.UI.Hasher import Hasher
+from client_side.UI.encryption import RSACipher
+import os
+
+# AWS Sunucu Bilgileri
+FTP_HOST = "16.170.206.200"  # AWS sunucu IP adresi veya hostname
+FTP_PORT = 2121  # AWS sunucunun FTP portu
+
+# FTP bağlantısını paylaşılabilir hale getirmek
+ftp = FTP()
+ftp.connect(FTP_HOST, FTP_PORT)
+
+class MainApp(App):
+    def build(self):
+        # Kullanıcı giriş panelini döndür
+        return LoginPanel(ftp=ftp)
 
 if __name__ == "__main__":
-    # FTP connection details
-    FTP_HOST = "16.170.206.200"  # Server address (use '127.0.0.1' for localhost)
-    FTP_PORT = 2121  # Port number
-
-    # Initialize FTP connection
-    ftp = FTP()
-    ftp.connect(FTP_HOST, FTP_PORT)  # Connect to the FTP server
-
-    # Create and run the Kivy app
-    class MainApp(App):
-        def build(self):
-            return LoginPanel(ftp=ftp)
-
     MainApp().run()
