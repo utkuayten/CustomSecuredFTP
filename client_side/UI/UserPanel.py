@@ -150,8 +150,18 @@ class UserPanelApp(BoxLayout):
         )
         download_btn.bind(on_press=self.download_selected_files)
         
+        # Refresh button
+        refresh_btn = ModernButton(
+            text="Refresh",
+            size_hint_x=0.33,  # Genişlik oranını diğer butonlara eşitledik
+            background_color=(0.3, 0.5, 0.8, 1)  # Blue
+        )
+        refresh_btn.bind(on_press=lambda instance: self.refresh_file_list())  # refresh_file_list fonksiyonunu bağladık
+        
+        # Add buttons to the layout
         buttons_layout.add_widget(upload_btn)
         buttons_layout.add_widget(download_btn)
+        buttons_layout.add_widget(refresh_btn)  # Refresh butonunu ekledik
         main_layout.add_widget(buttons_layout)
 
         self.add_widget(main_layout)
