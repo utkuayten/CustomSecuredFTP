@@ -5,8 +5,6 @@ from kivy.uix.button import Button
 from kivy.uix.popup import Popup
 from kivy.app import App
 
-import bcrypt
-import json
 import os
 
 from client_side.UI.Hasher import Hasher

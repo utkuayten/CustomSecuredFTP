@@ -1,7 +1,6 @@
 import hashlib
 import os
 
-import bcrypt
 
 
 class Hasher:
