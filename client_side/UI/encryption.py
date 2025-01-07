@@ -1,6 +1,7 @@
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 
+
 class RSACipher:
     @staticmethod
     def encrypt_key(public_key_pem, key):

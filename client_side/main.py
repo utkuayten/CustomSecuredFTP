@@ -1,8 +1,8 @@
 from kivy.app import App
-from client_side.UI.LoginPanel import LoginPanel
+from UI.LoginPanel import LoginPanel
 from ftplib import FTP
-from client_side.UI.Hasher import Hasher
-from client_side.UI.encryption import RSACipher
+from UI.Hasher import Hasher
+from UI.encryption import RSACipher
 import os
 
 

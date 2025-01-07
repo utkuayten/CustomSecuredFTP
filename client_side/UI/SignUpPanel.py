@@ -7,7 +7,7 @@ from kivy.app import App
 
 import os
 
-from client_side.UI.Hasher import Hasher
+from UI.Hasher import Hasher
 
 USER_DB = os.path.join(os.path.dirname(__file__), "users.json")
 
