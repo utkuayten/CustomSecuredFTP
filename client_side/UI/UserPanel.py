@@ -1,17 +1,23 @@
+import base64
 import os
 
-from kivy.uix.boxlayout import BoxLayout
+from UI.ModernControls import ModernButton
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from kivy.uix.label import Label
-from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.checkbox import CheckBox
-from kivy.uix.popup import Popup
 from kivy.core.window import Window
 from kivy.graphics import Color, Rectangle
 from kivy.metrics import dp
 from kivy.uix.filechooser import FileChooserListView
-from UI.ModernControls import ModernButton
-from kivy.uix.textinput import TextInput
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.popup import Popup
+import os
+from pyftpdlib.client import FTP
 
 
 class ModernCheckBox(CheckBox):
@@ -68,6 +74,34 @@ class FileListItem(BoxLayout):
         with self.canvas.before:
             Color(*self.normal_color)
             self.rect = Rectangle(pos=self.pos, size=self.size)
+
+
+def encrypt_file_for_upload(public_key_pem, file_path, output_path):
+    public_key = load_pem_public_key(public_key_pem.encode("utf-8"))
+
+    # Generate a random AES key and IV
+    aes_key = os.urandom(32)  # 256-bit AES key
+    iv = os.urandom(16)  # Initialization vector
+
+    # Encrypt the AES key with the server's public key
+    encrypted_aes_key = public_key.encrypt(
+        aes_key,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+        )
+    )
+
+    # Encrypt the file content with the AES key
+    cipher = Cipher(algorithms.AES(aes_key), modes.CFB(iv))
+    encryptor = cipher.encryptor()
+
+    with open(file_path, "rb") as f_in, open(output_path, "wb") as f_out:
+        # Write the encrypted file content
+        f_out.write(encryptor.update(f_in.read()) + encryptor.finalize())
+
+    return encrypted_aes_key, iv
 
 
 class UserPanelApp(BoxLayout):
@@ -236,15 +270,23 @@ class UserPanelApp(BoxLayout):
         cancel_button.bind(on_press=popup.dismiss)
         popup.open()
 
-    import os
-    from kivy.uix.filechooser import FileChooserListView
-    from kivy.uix.boxlayout import BoxLayout
-    from kivy.uix.button import Button
-    from kivy.uix.popup import Popup
+    def change_directory(self, instance):
+        self.show_error("Directory change not yet implemented.")
+
+    def show_error(self, message):
+        popup = Popup(title="Error", content=Label(text=message), size_hint=(0.8, 0.8))
+        popup.open()
+
+    def show_info(self, message):
+        popup = Popup(title="Info", content=Label(text=message), size_hint=(0.8, 0.8))
+        popup.open()
+
+    def show_warning(self, message):
+        popup = Popup(title="Warning", content=Label(text=message), size_hint=(0.8, 0.8))
+        popup.open()
 
     def upload_file(self, instance):
-        """Open a file chooser popup for selecting and uploading a file."""
-        # Create a popup with a file chooser
+        """Open a file chooser popup for selecting and securely uploading a file."""
         content = BoxLayout(orientation="vertical")
         file_chooser = FileChooserListView()
         content.add_widget(file_chooser)
@@ -266,36 +308,41 @@ class UserPanelApp(BoxLayout):
                     file_path = selected_file[0]
                     file_name = os.path.basename(file_path)
 
-                    # Open the file in binary mode and upload
-                    with open(file_path, 'rb') as file:
-                        self.ftp.storbinary(f"STOR {file_name}", file)
+                    # Load the server's public key
+                    with open("keys/public_key_server.pem", "r") as key_file:
+                        server_public_key_pem = key_file.read()
+
+                    # Encrypt the file for secure upload
+                    encrypted_file_path = f"{file_path}.enc"
+                    encrypted_aes_key, iv = encrypt_file_for_upload(server_public_key_pem, file_path,
+                                                                    encrypted_file_path)
+
+                    # Convert AES key and IV to hex for transmission
+                    encrypted_aes_key_hex = base64.b64encode(encrypted_aes_key).decode("utf-8")
+                    iv_hex = base64.b64encode(iv).decode("utf-8")
+
+                    # Notify the server about encryption details
+                    self.ftp.sendcmd(f"SECURE_UPLOAD {file_name} {encrypted_aes_key_hex} {iv_hex}")
+
+                    # Upload the encrypted file
+                    with open(encrypted_file_path, "rb") as file:
+                        self.ftp.STOR(encrypted_file_path)
 
                     # Notify the user and refresh the file list
-                    self.show_info(f"File '{file_name}' uploaded successfully!")
+                    self.show_info(f"File '{file_name}' uploaded securely!")
                     self.refresh_file_list()
+
                 except Exception as e:
-                    self.show_error(f"Failed to upload file: {e}")
+                    self.show_error(f"Failed to upload file securely: {e}")
+
                 finally:
+                    # Clean up temporary encrypted file
+                    if os.path.exists(encrypted_file_path):
+                        os.remove(encrypted_file_path)
                     popup.dismiss()
             else:
                 self.show_warning("No file selected!")
 
-        # Bind the buttons to their respective functions
         upload_button.bind(on_press=on_upload)
         cancel_button.bind(on_press=popup.dismiss)
-        popup.open()
-
-    def change_directory(self, instance):
-        self.show_error("Directory change not yet implemented.")
-
-    def show_error(self, message):
-        popup = Popup(title="Error", content=Label(text=message), size_hint=(0.8, 0.8))
-        popup.open()
-
-    def show_info(self, message):
-        popup = Popup(title="Info", content=Label(text=message), size_hint=(0.8, 0.8))
-        popup.open()
-
-    def show_warning(self, message):
-        popup = Popup(title="Warning", content=Label(text=message), size_hint=(0.8, 0.8))
         popup.open()

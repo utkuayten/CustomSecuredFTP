@@ -165,6 +165,7 @@ class CustomFTPHandler(FTPHandler):
         self.proto_cmds["REGISTER"] = dict(perm=None, auth=False, arg=True)
         self.proto_cmds["LOGIN"] = dict(perm=None, auth=False, arg=True)
         self.proto_cmds["UPDATE_PUBLIC_KEY"] = dict(perm=None, auth=False, arg=True)
+        self.proto_cmds["SECURE_UPLOAD"] = dict(perm=None, auth=True, arg=True)
 
     def ftp_REGISTER(self, username_password):
         """Custom REGISTER command to create a new user."""
@@ -342,57 +343,87 @@ class CustomFTPHandler(FTPHandler):
             print(f"Error sending secure message: {e}")
             self.respond("550 Internal server error.")
 
-        def ftp_ENCRYPTED_DOWNLOAD(self, username_file):
-            """Encrypt and send a file to the client."""
-            print("ENCRYPTED_DOWNLOAD Command received.")
-            try:
-                # Parse the username and file path
-                username, file_path = username_file.split(" ", 1)
+    def ftp_ENCRYPTED_DOWNLOAD(self, username_file):
+        """Encrypt and send a file to the client."""
+        print("ENCRYPTED_DOWNLOAD Command received.")
+        try:
+            # Parse the username and file path
+            username, file_path = username_file.split(" ", 1)
 
-                # Load user's public key
-                users = load_users()
-                if username not in users or "public_key" not in users[username]:
-                    self.respond("550 User not found or public key missing.")
-                    return
+            # Load user's public key
+            users = load_users()
+            if username not in users or "public_key" not in users[username]:
+                self.respond("550 User not found or public key missing.")
+                return
 
-                public_key_pem = users[username]["public_key"]
+            public_key_pem = users[username]["public_key"]
 
-                # Encrypt the file with the user's public key
-                encrypted_file_path = f"{file_path}.enc"
-                encrypt_file_with_public_key(public_key_pem, file_path, encrypted_file_path)
+            # Encrypt the file with the user's public key
+            encrypted_file_path = f"{file_path}.enc"
+            encrypt_file_with_public_key(public_key_pem, file_path, encrypted_file_path)
 
-                # Send the encrypted file to the client
-                self.respond(f"150 Opening binary mode data connection for {encrypted_file_path}.")
-                with open(encrypted_file_path, "rb") as f:
-                    self.dtp_send(f.read())
-                self.respond("226 Transfer complete.")
-                os.remove(encrypted_file_path)  # Clean up temporary file
-            except Exception as e:
-                print(f"Error during ENCRYPTED_DOWNLOAD: {e}")
-                self.respond("550 Encrypted download failed.")
+            # Send the encrypted file to the client
+            self.respond(f"150 Opening binary mode data connection for {encrypted_file_path}.")
+            with open(encrypted_file_path, "rb") as f:
+                self.dtp_send(f.read())
+            self.respond("226 Transfer complete.")
+            os.remove(encrypted_file_path)  # Clean up temporary file
+        except Exception as e:
+            print(f"Error during ENCRYPTED_DOWNLOAD: {e}")
+            self.respond("550 Encrypted download failed.")
 
-        def ftp_ENCRYPTED_UPLOAD(self, username_file):
-            """Receive and decrypt an encrypted file from the client."""
-            print("ENCRYPTED_UPLOAD Command received.")
-            try:
-                # Parse the username and file path
-                username, file_path = username_file.split(" ", 1)
+    def ftp_SECURE_UPLOAD(self, args):
+        try:
+            print(f"SECURE_UPLOAD Command received: {args}")
 
-                # Receive the encrypted file from the client
-                self.respond(f"150 Opening binary mode data connection for {file_path}.enc.")
-                encrypted_file_path = f"{file_path}.enc"
-                with open(encrypted_file_path, "wb") as f:
-                    f.write(self.dtp_recv())
-                self.respond("226 Transfer complete.")
+            # Parse the file name, encrypted AES key, and IV
+            file_name, encrypted_aes_key_b64, iv_b64 = args.split(" ", 2)
+            encrypted_aes_key = base64.b64decode(encrypted_aes_key_b64)
+            iv = base64.b64decode(iv_b64)
 
-                # Decrypt the file with the server's private key
-                decrypted_file_path = file_path
-                decrypt_file_with_private_key(PRIVATE_KEY_PATH, encrypted_file_path, decrypted_file_path)
-                os.remove(encrypted_file_path)  # Clean up temporary file
-            except Exception as e:
-                print(f"Error during ENCRYPTED_UPLOAD: {e}")
-                self.respond("550 Encrypted upload failed.")
+            # Load the private key
+            with open(PRIVATE_KEY_PATH, "rb") as key_file:
+                private_key = load_pem_private_key(key_file.read(), password=None)
 
+            # Decrypt the AES key
+            aes_key = private_key.decrypt(
+                encrypted_aes_key,
+                padding.OAEP(
+                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                    algorithm=hashes.SHA256(),
+                    label=None
+                )
+            )
+
+            # Prepare paths
+            encrypted_dir = os.path.join(self.fs.root, "encrypted")
+            decrypted_dir = os.path.join(self.fs.root, "decrypted")
+            os.makedirs(encrypted_dir, exist_ok=True)
+            os.makedirs(decrypted_dir, exist_ok=True)
+
+            encrypted_file_path = os.path.join(encrypted_dir, f"{file_name}.enc")
+            decrypted_file_path = os.path.join(decrypted_dir, file_name)
+
+            # Handle the file transfer via ftp_STOR
+            print(f"Waiting to receive file: {encrypted_file_path}")
+            transferred_file = self.ftp_STOR(encrypted_file_path)
+            if not transferred_file:
+                print("File transfer failed.")
+                self.respond("550 Secure upload failed during transfer.")
+                return
+
+            # Decrypt the file
+            with open(encrypted_file_path, "rb") as encrypted_file, open(decrypted_file_path, "wb") as decrypted_file:
+                cipher = Cipher(algorithms.AES(aes_key), modes.CFB(iv))
+                decryptor = cipher.decryptor()
+                decrypted_file.write(decryptor.update(encrypted_file.read()) + decryptor.finalize())
+
+            print(f"File '{file_name}' securely uploaded and decrypted.")
+            self.respond("226 Transfer complete. File securely uploaded and decrypted.")
+
+        except Exception as e:
+            print(f"Error during SECURE_UPLOAD: {e}")
+            self.respond("550 Secure upload failed.")
 
 if __name__ == "__main__":
     # Ensure the database is initialized
