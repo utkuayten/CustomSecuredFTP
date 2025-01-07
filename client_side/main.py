@@ -9,14 +9,14 @@ import os
 FTP_HOST = "16.170.206.200"  # AWS sunucu IP adresi veya hostname
 FTP_PORT = 2121  # AWS sunucunun FTP portu
 
-# FTP bağlantısını paylaşılabilir hale getirmek
-ftp = FTP()
-ftp.connect(FTP_HOST, FTP_PORT)
+    # Initialize FTP connection
+    ftp = FTP()
+    ftp.connect(FTP_HOST, FTP_PORT)  # Connect to the FTP server
 
-class MainApp(App):
-    def build(self):
-        # Kullanıcı giriş panelini döndür
-        return LoginPanel(ftp=ftp)
+    # Create and run the Kivy app
+    class MainApp(App):
+        def build(self):
+            return LoginPanel(ftp=ftp)
 
 if __name__ == "__main__":
     MainApp().run()

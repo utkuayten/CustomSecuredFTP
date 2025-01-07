@@ -37,6 +37,16 @@ class SignUpPanel(BoxLayout):
         sign_up_button.bind(on_press=self.sign_up)
         self.add_widget(sign_up_button)
 
+
+        # Add remaining space at the bottom
+        self.add_widget(BoxLayout())
+
+    def _update_rect(self, instance, value):
+        self.rect.pos = instance.pos
+        self.rect.size = instance.size
+
+
+
     def sign_up(self, instance):
         username = self.username_entry.text
         password = self.password_entry.text
