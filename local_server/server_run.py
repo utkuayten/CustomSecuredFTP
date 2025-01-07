@@ -268,6 +268,7 @@ class CustomFTPHandler(FTPHandler):
             with open("keys/private_key.pem", "rb") as key_file:
                 private_key = load_pem_private_key(key_file.read(), password=None)
 
+            print('Key loaded')
             # Decrypt the AES key using the server's private key
             aes_key = private_key.decrypt(
                 rsa_encrypted_aes_key,

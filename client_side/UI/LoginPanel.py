@@ -51,6 +51,7 @@ def show_popup(title, message):
     popup.open()
 
 
+# Due to byte limitations RSA byte limitations.
 def hybrid_encrypt(server_public_key_bytes, data_to_encrypt):
     print('HERE')
     # Step 1: Generate a random AES key
@@ -180,7 +181,6 @@ class LoginPanel(BoxLayout):
         self.rect.size = instance.size
 
     def sign_up(self, instance):
-        """Open the SignUpPanel in a modal view."""
         sign_up_modal = ModalView(size_hint=(0.8, 0.8))
 
         sign_up_panel = SignUpPanel(ftp=self.ftp)
@@ -206,12 +206,10 @@ class LoginPanel(BoxLayout):
         print(f"Hashed Password: {hashed_password}")  # Debugging
 
         try:
-            # Load the server's public key
             server_public_key_path = os.path.join(os.path.dirname(__file__), "../keys/public_key_server.pem")
             with open(server_public_key_path, "rb") as f:
                 server_public_key = f.read()
 
-            # Encrypt the hashed password
             encrypted_password = RSACipher.encrypt_key(server_public_key, hashed_password.encode())
         except FileNotFoundError:
             show_popup("Error", "Public key file not found.")
@@ -232,32 +230,26 @@ class LoginPanel(BoxLayout):
                 keys_dir = "keys"
                 os.makedirs(keys_dir, exist_ok=True)  # Ensure the directory exists
 
-                # Save the private key
                 with open(os.path.join(keys_dir, "private_key.pem"), "wb") as private_file:
                     private_file.write(private_key_pem)
 
-                # Save the public key
                 with open(os.path.join(keys_dir, "public_key.pem"), "wb") as public_file:
                     public_file.write(public_key_pem)
 
-                # Base64-encode the public key
                 public_key_encoded = base64.b64encode(public_key_pem)
                 print(f"Size of Encoded Public Key: {len(public_key_encoded)} bytes")
-
-                # Perform hybrid encryption
                 hybrid_payload = hybrid_encrypt(server_public_key, public_key_encoded)
 
-                # Prepare the payload for transmission
                 rsa_encrypted_aes_key_hex = hybrid_payload["rsa_encrypted_aes_key"].hex()
                 aes_encrypted_data_hex = hybrid_payload["aes_encrypted_data"].hex()
                 iv_hex = hybrid_payload["iv"].hex()
 
-                # Send the encrypted payload to the server
                 try:
                     response = self.ftp.sendcmd(
                         f"UPDATE_PUBLIC_KEY {username} {rsa_encrypted_aes_key_hex} {aes_encrypted_data_hex} {iv_hex}"
                     )
                     print(f"Server response: {response}")
+
 
                 except Exception as e:
                     print(f"Error updating public key: {e}")
@@ -266,12 +258,10 @@ class LoginPanel(BoxLayout):
                 self.show_popup("Login Failed", f"Server response: {response}")
 
 
-
         except Exception as e:
             print(f"Error during login or key update: {e}")
 
     def switch_to_user_panel(self):
-        """UserPanelApp'e geçiş yapar."""
         app = App.get_running_app()
         app.root.clear_widgets()
         app.root.add_widget(UserPanelApp(ftp=self.ftp))
