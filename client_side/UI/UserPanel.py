@@ -155,18 +155,27 @@ class UserPanelApp(BoxLayout):
         )
         download_btn.bind(on_press=self.download_selected_files)
 
+        # Add Delete Button
+        delete_btn = ModernButton(
+            text="Delete Selected",
+            size_hint_x=0.5,
+            background_color=(1, 0.3, 0.3, 1)  # Red for delete
+        )
+        delete_btn.bind(on_press=self.delete_selected_files)  # Bind delete function
+
         # Refresh button
         refresh_btn = ModernButton(
             text="Refresh",
-            size_hint_x=0.33,  # Genişlik oranını diğer butonlara eşitledik
+            size_hint_x=0.33,
             background_color=(0.3, 0.5, 0.8, 1)  # Blue
         )
-        refresh_btn.bind(on_press=lambda instance: self.refresh_file_list())  # refresh_file_list fonksiyonunu bağladık
+        refresh_btn.bind(on_press=lambda instance: self.refresh_file_list())  # Bind refresh function
 
         # Add buttons to the layout
         buttons_layout.add_widget(upload_btn)
         buttons_layout.add_widget(download_btn)
-        buttons_layout.add_widget(refresh_btn)  # Refresh butonunu ekledik
+        buttons_layout.add_widget(delete_btn)  # Add delete button
+        buttons_layout.add_widget(refresh_btn)
         main_layout.add_widget(buttons_layout)
 
         self.add_widget(main_layout)
@@ -219,9 +228,17 @@ class UserPanelApp(BoxLayout):
         def on_download(instance):
             selected_dir = file_chooser.path  # Get the selected directory
             if selected_dir:
+                # Check if the directory is writable
+                if not os.access(selected_dir, os.W_OK):
+                    self.show_error(f"Selected directory '{selected_dir}' is not writable!")
+                    return
+
                 try:
                     for file_name in self.selected_files:
-                        save_path = f"{selected_dir}/{file_name}"
+                        # Construct the save path correctly
+                        save_path = os.path.join(selected_dir, file_name)
+
+                        # Retrieve and write the file
                         with open(save_path, 'wb') as file:
                             self.ftp.retrbinary(f"RETR {file_name}", file.write)
                         self.show_info(f"File '{file_name}' downloaded to '{save_path}' successfully!")
@@ -235,6 +252,50 @@ class UserPanelApp(BoxLayout):
         download_button.bind(on_press=on_download)
         cancel_button.bind(on_press=popup.dismiss)
         popup.open()
+
+    def delete_selected_files(self, instance):
+        """Delete the selected files."""
+        if not self.selected_files:
+            self.show_warning("No files selected for deletion!")
+            return
+
+        # Create a confirmation popup
+        content = BoxLayout(orientation="vertical", padding=10, spacing=10)
+        confirmation_label = Label(
+            text=f"Are you sure you want to delete the selected files?\nThis action cannot be undone!",
+            halign="center",
+            valign="middle",
+            size_hint=(1, None),
+            height=dp(100)
+        )
+        content.add_widget(confirmation_label)
+
+        buttons = BoxLayout(size_hint_y=None, height=50, spacing=10)
+        delete_button = Button(text="Delete", size_hint_x=0.5, background_color=(1, 0, 0, 1))  # Red button
+        cancel_button = Button(text="Cancel", size_hint_x=0.5)
+        buttons.add_widget(delete_button)
+        buttons.add_widget(cancel_button)
+        content.add_widget(buttons)
+
+        popup = Popup(title="Confirm Deletion", content=content, size_hint=(0.8, 0.5))
+
+        def on_delete(instance):
+            try:
+                for file_name in self.selected_files:
+                    # Delete the file from the FTP server
+                    self.ftp.delete(file_name)
+                    self.show_info(f"File '{file_name}' deleted successfully!")
+            except Exception as e:
+                self.show_error(f"Failed to delete file: {e}")
+            finally:
+                # Refresh the file list after deletion
+                self.refresh_file_list()
+                popup.dismiss()
+
+        delete_button.bind(on_press=on_delete)
+        cancel_button.bind(on_press=popup.dismiss)
+        popup.open()
+
 
     import os
     from kivy.uix.filechooser import FileChooserListView
