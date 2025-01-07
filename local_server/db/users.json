@@ -1,0 +1,27 @@
+{
+    "ab": {
+        "password": "a672724e431e541f6cd9dae1f951deefb8675ea03f4bd0ce84f778d1a1389585",
+        "home_dir": "/Users/utkuayten/Desktop/CS447/CustomSecuredFTP/local_server/root/ab"
+    },
+    "asd": {
+        "password": "82d336d0804cef0f95aa773a70ca0abf0cb5e6f06082a4dc72d34f0af7ceaf56",
+        "home_dir": "/Users/utkuayten/Desktop/CS447/CustomSecuredFTP/local_server/root/asd",
+        "public_key": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmS8c14oBDpKIL3Y0vVz3\nHvlg1naADRbiC7JRblux/6p3I0vgMdMo0tRLt2r/p9MbzjuysMdwh6Py8K89VDoE\npMcZWZ9HgqG9IwfeBgx5OQAuL3Sa4KhZd6Sqms7+VWWWG+ECt87XvFlBuSQwnhqj\nu6LhnT0C20qxdWw4YegZ8/zBr3bVEyr1LlTWjocnLoYUGEN+Q1OHvjLqRB86wQto\n77gBcfgYyAaI8qRZgbd3kqMDIWXMVkVi8TVV+30zMy7JQ+eMJ7YEpGY4mBb4O7ms\nCcKlY3raLQkKAap3THgv95oBb5/Lo7alMVNISJDDw0G7+s9b0ULpGksZUvTIc+Zq\nxwIDAQAB\n-----END PUBLIC KEY-----\n"
+    },
+    "asda": {
+        "password": "6d79c3da7b3ebff958a602efd11d6c8225768af90b451b87fe23a46b937a1f88",
+        "home_dir": "/Users/utkuayten/Desktop/CS447/CustomSecuredFTP/local_server/root/asda"
+    },
+    "asdaa": {
+        "password": "7bb9c8b821ec32b563e74cfd190a73794a4380d966db1a91106cebb6810b0777",
+        "home_dir": "/Users/utkuayten/Desktop/CS447/CustomSecuredFTP/local_server/root/asdaa"
+    },
+    "asdsad": {
+        "password": "8c5895b7e367d0ef0c7e1609b69dcdb36441cc6ba9efe03168578cb1c790404e",
+        "home_dir": "/Users/utkuayten/Desktop/CS447/CustomSecuredFTP/local_server/root/asdsad"
+    },
+    "asdsada": {
+        "password": "aa6a51cd460eb7fdf2176c146b46c5869cb8bf433926b66877fb164f9531819f",
+        "home_dir": "/Users/utkuayten/Desktop/CS447/CustomSecuredFTP/local_server/root/asdsada"
+    }
+}

@@ -9,6 +9,8 @@ import os
 
 from UI.Hasher import Hasher
 
+from UI.encryption import RSACipher
+
 USER_DB = os.path.join(os.path.dirname(__file__), "users.json")
 
 
@@ -66,6 +68,7 @@ class SignUpPanel(BoxLayout):
         try:
             self.ftp.sendcmd(f"REGISTER {username} {hashed_password}")
             self.show_popup("Sign Up", "Sign up successful!")
+
         except Exception as e:
             self.show_popup("Sign Up Failed", f"Error: {e}")
 

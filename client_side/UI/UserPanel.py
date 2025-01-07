@@ -13,33 +13,35 @@ from kivy.uix.filechooser import FileChooserListView
 from UI.ModernControls import ModernButton
 from kivy.uix.textinput import TextInput
 
+
 class ModernCheckBox(CheckBox):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.color = (0.3, 0.5, 0.8, 1)  # Blue checkbox
 
+
 class FileListItem(BoxLayout):
     def __init__(self, file_name, on_select, is_even=False, **kwargs):
         super().__init__(orientation="horizontal", size_hint_y=None, height=dp(40), spacing=10, **kwargs)
-        
+
         # Set alternating background colors
         bg_color = (0.97, 0.97, 0.97, 1) if is_even else (1, 1, 1, 1)
         hover_color = (0.95, 0.95, 0.95, 1) if is_even else (0.98, 0.98, 0.98, 1)
-        
+
         with self.canvas.before:
             Color(*bg_color)
             self.rect = Rectangle(pos=self.pos, size=self.size)
         self.bind(pos=self._update_rect, size=self._update_rect)
-        
+
         # Add hover effect
         self.normal_color = bg_color
         self.hover_color = hover_color
         self.bind(on_touch_down=self._on_touch)
         self.bind(on_touch_up=self._on_touch_up)
-        
+
         checkbox = ModernCheckBox(size_hint_x=None, width=dp(40))
         checkbox.bind(active=lambda cb, value: on_select(file_name, value))
-        
+
         label = Label(
             text=file_name,
             color=(0.2, 0.2, 0.2, 1),
@@ -48,35 +50,35 @@ class FileListItem(BoxLayout):
             valign='middle',
             text_size=(None, dp(40))
         )
-        
+
         self.add_widget(checkbox)
         self.add_widget(label)
-    
+
     def _update_rect(self, instance, value):
         self.rect.pos = instance.pos
         self.rect.size = instance.size
-    
+
     def _on_touch(self, instance, touch):
         if self.collide_point(*touch.pos):
             with self.canvas.before:
                 Color(*self.hover_color)
                 self.rect = Rectangle(pos=self.pos, size=self.size)
-    
+
     def _on_touch_up(self, instance, touch):
         with self.canvas.before:
             Color(*self.normal_color)
             self.rect = Rectangle(pos=self.pos, size=self.size)
+
 
 class UserPanelApp(BoxLayout):
     def __init__(self, ftp, **kwargs):
         super().__init__(orientation="horizontal", spacing=20, padding=20, **kwargs)
         self.ftp = ftp
         self.selected_files = []
-        self.selected_directories = []
 
         # Set window size
         Window.size = (800, 600)
-        
+
         # Background
         with self.canvas.before:
             Color(0.98, 0.98, 0.98, 1)
@@ -85,7 +87,7 @@ class UserPanelApp(BoxLayout):
 
         # Main layout for file list
         main_layout = BoxLayout(orientation="vertical", spacing=10)
-        
+
         # Title container with padding
         title_container = BoxLayout(
             orientation="vertical",
@@ -93,12 +95,12 @@ class UserPanelApp(BoxLayout):
             height=dp(100),
             padding=[30, 20]  # [left/right, top/bottom] padding
         )
-        
+
         # H1 style title
         title_label = Label(
             text="Files",
             font_size='32sp',  # Larger font size
-            bold=True,         # Bold text
+            bold=True,  # Bold text
             color=(0.2, 0.2, 0.2, 1),
             size_hint_y=None,
             height=dp(60),
@@ -106,7 +108,7 @@ class UserPanelApp(BoxLayout):
             valign='bottom'
         )
         title_label.bind(size=lambda *x: setattr(title_label, 'text_size', (title_label.width, None)))
-        
+
         # Add a decorative underline
         with title_container.canvas.after:
             Color(0.3, 0.5, 0.8, 0.8)  # Blue line color
@@ -114,7 +116,7 @@ class UserPanelApp(BoxLayout):
                 pos=(dp(30), title_container.y + dp(20)),
                 size=(dp(100), dp(2))  # Width of 100dp, height of 2dp
             )
-        
+
         title_container.add_widget(title_label)
         main_layout.add_widget(title_container)
 
@@ -138,21 +140,21 @@ class UserPanelApp(BoxLayout):
 
         # Buttons container
         buttons_layout = BoxLayout(orientation="horizontal", size_hint_y=None, height=dp(50), spacing=10)
-        
+
         upload_btn = ModernButton(
             text="Upload File",
             size_hint_x=0.5,
             background_color=(0.3, 0.5, 0.8, 1)  # Blue
         )
         upload_btn.bind(on_press=self.upload_file)
-        
+
         download_btn = ModernButton(
             text="Download Selected",
             size_hint_x=0.5,
             background_color=(0.3, 0.5, 0.8, 1)  # Blue
         )
         download_btn.bind(on_press=self.download_selected_files)
-        
+
         # Refresh button
         refresh_btn = ModernButton(
             text="Refresh",
@@ -160,7 +162,7 @@ class UserPanelApp(BoxLayout):
             background_color=(0.3, 0.5, 0.8, 1)  # Blue
         )
         refresh_btn.bind(on_press=lambda instance: self.refresh_file_list())  # refresh_file_list fonksiyonunu bağladık
-        
+
         # Add buttons to the layout
         buttons_layout.add_widget(upload_btn)
         buttons_layout.add_widget(download_btn)
@@ -187,25 +189,6 @@ class UserPanelApp(BoxLayout):
         except Exception as e:
             self.show_error(f"Failed to retrieve file list: {e}")
 
-    def refresh_directory_view(self):
-        """Populate the directory list with checkboxes."""
-        self.directory_list_layout.clear_widgets()  # Clear the current list
-        self.selected_directories = []  # Reset selected directories
-        try:
-            current_dir = self.ftp.pwd()
-            self.current_dir_label.text = f"Current Directory: {current_dir}"
-
-            dirs = self.ftp.nlst()  # Retrieve the list of directories
-            for dir_name in dirs:
-                row = BoxLayout(orientation="horizontal", size_hint_y=None, height=40)
-                checkbox = CheckBox(size_hint_x=None, width=50)
-                checkbox.bind(active=lambda checkbox, active, dir_name=dir_name: self.select_directory(dir_name, active))
-                row.add_widget(checkbox)
-                row.add_widget(Label(text=dir_name, size_hint_x=1))
-                self.directory_list_layout.add_widget(row)
-        except Exception as e:
-            self.show_error(f"Failed to retrieve directory list: {e}")
-
     def select_file(self, file, active):
         """Handle file selection."""
         if active:
@@ -213,19 +196,51 @@ class UserPanelApp(BoxLayout):
         else:
             self.selected_files.remove(file)
 
-    def select_directory(self, directory, active):
-        """Handle directory selection."""
-        if active:
-            self.selected_directories.append(directory)
-        else:
-            self.selected_directories.remove(directory)
-
     def download_selected_files(self, instance):
         """Download the selected files."""
         if not self.selected_files:
             self.show_warning("No files selected for download!")
             return
-        self.show_info(f"Downloading files: {', '.join(self.selected_files)}")
+
+        # Create a popup for selecting the save directory
+        content = BoxLayout(orientation="vertical")
+        file_chooser = FileChooserListView(path="/", filters=["*"], dirselect=True)  # Enable directory selection
+        content.add_widget(file_chooser)
+
+        buttons = BoxLayout(size_hint_y=None, height=50)
+        download_button = Button(text="Download", size_hint_x=0.5)
+        cancel_button = Button(text="Cancel", size_hint_x=0.5)
+        buttons.add_widget(download_button)
+        buttons.add_widget(cancel_button)
+        content.add_widget(buttons)
+
+        popup = Popup(title="Select Save Directory", content=content, size_hint=(0.9, 0.9))
+
+        def on_download(instance):
+            selected_dir = file_chooser.path  # Get the selected directory
+            if selected_dir:
+                try:
+                    for file_name in self.selected_files:
+                        save_path = f"{selected_dir}/{file_name}"
+                        with open(save_path, 'wb') as file:
+                            self.ftp.retrbinary(f"RETR {file_name}", file.write)
+                        self.show_info(f"File '{file_name}' downloaded to '{save_path}' successfully!")
+                except Exception as e:
+                    self.show_error(f"Failed to download file: {e}")
+                finally:
+                    popup.dismiss()
+            else:
+                self.show_warning("Please select a valid directory!")
+
+        download_button.bind(on_press=on_download)
+        cancel_button.bind(on_press=popup.dismiss)
+        popup.open()
+
+    import os
+    from kivy.uix.filechooser import FileChooserListView
+    from kivy.uix.boxlayout import BoxLayout
+    from kivy.uix.button import Button
+    from kivy.uix.popup import Popup
 
     def upload_file(self, instance):
         """Open a file chooser popup for selecting and uploading a file."""
@@ -247,12 +262,17 @@ class UserPanelApp(BoxLayout):
             selected_file = file_chooser.selection
             if selected_file:
                 try:
+                    # Get the selected file path
                     file_path = selected_file[0]
+                    file_name = os.path.basename(file_path)
+
+                    # Open the file in binary mode and upload
                     with open(file_path, 'rb') as file:
-                        file_name = file_path.split('/')[-1]
                         self.ftp.storbinary(f"STOR {file_name}", file)
-                        self.show_info(f"File '{file_name}' uploaded successfully!")
-                        self.refresh_file_list()
+
+                    # Notify the user and refresh the file list
+                    self.show_info(f"File '{file_name}' uploaded successfully!")
+                    self.refresh_file_list()
                 except Exception as e:
                     self.show_error(f"Failed to upload file: {e}")
                 finally:
@@ -260,6 +280,7 @@ class UserPanelApp(BoxLayout):
             else:
                 self.show_warning("No file selected!")
 
+        # Bind the buttons to their respective functions
         upload_button.bind(on_press=on_upload)
         cancel_button.bind(on_press=popup.dismiss)
         popup.open()
